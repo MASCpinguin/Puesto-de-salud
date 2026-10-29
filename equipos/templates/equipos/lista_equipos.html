@@ -1,0 +1,115 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informe por puesto de salud</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f4f6f8; color: #263238; }
+        header { background: #1b5e20; color: #fff; padding: 14px 0; }
+        .contenedor { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+        header .contenedor { display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.2rem; }
+        .boton { display: inline-block; padding: 8px 16px; border-radius: 6px; text-decoration: none;
+                 background: #fff; color: #1b5e20; font-weight: 600; border: 0; cursor: pointer; }
+        h2 { margin: 28px 0 14px; }
+        .mensaje { background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 12px 16px; margin-top: 20px; border-radius: 4px; }
+        .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .tarjeta { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); padding: 18px; }
+        .tarjeta h3 { margin: 0 0 12px; color: #1b5e20; }
+        .cifras { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .cifras small { color: #78909c; display: block; }
+        .cifras strong { font-size: 1.8rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border-bottom: 1px solid #e0e0e0; text-align: left; }
+        th { background: #e8f5e9; font-size: .9rem; }
+        .num { text-align: right; }
+        .tarjeta table { font-size: .92rem; }
+        .tarjeta th, .tarjeta td { padding: 7px 4px; }
+        .recaudo { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e0e0e0; }
+        .tabla-usuarios { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); overflow-x: auto; }
+        .tabla-usuarios th { background: #2e7d32; color: #fff; }
+        .vacio { text-align: center; color: #78909c; padding: 24px; }
+        .nota { color: #78909c; font-size: .85rem; margin: 14px 0 40px; }
+    </style>
+</head>
+<body>
+<header>
+    <div class="contenedor">
+        <h1>Laboratorio · Puestos de Salud</h1>
+        <a class="boton" href="{% url 'registrar_equipo' %}">+ Registrar usuario</a>
+    </div>
+</header>
+
+<main class="contenedor">
+    {% for message in messages %}
+        <div class="mensaje">{{ message }}</div>
+    {% endfor %}
+
+    <h2>Informe por puesto de salud</h2>
+    <section class="tarjetas">
+        {% for puesto in puestos %}
+        <article class="tarjeta">
+            <h3>{{ puesto.nombre }}</h3>
+            <div class="cifras">
+                <div><small>Usuarios</small><strong>{{ puesto.usuarios }}</strong></div>
+                <div class="num"><small>Total pruebas</small><strong>{{ puesto.total_pruebas }}</strong></div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Tipo</th><th class="num">Personas</th><th class="num">Pruebas</th><th class="num">%</th></tr>
+                </thead>
+                <tbody>
+                    {% for tipo in puesto.tipos %}
+                    <tr>
+                        <td>{{ tipo.nombre }}</td>
+                        <td class="num">{{ tipo.personas }}</td>
+                        <td class="num">{{ tipo.pruebas }}</td>
+                        <td class="num">{{ tipo.porcentaje|floatformat:2 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="recaudo"><span>Recaudo</span><strong>${{ puesto.recaudo|intcomma }}</strong></div>
+        </article>
+        {% endfor %}
+    </section>
+
+    <h2>Usuarios registrados</h2>
+    <div class="tabla-usuarios">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th><th>Documento</th><th>Puesto</th>
+                    <th class="num">Microbiología</th><th class="num">Bacteriología</th><th class="num">Química</th>
+                    <th class="num">M</th><th class="num">Valor a pagar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for equipo in equipos %}
+                <tr>
+                    <td>{{ equipo.nombre }}</td>
+                    <td>{{ equipo.documento }}</td>
+                    <td>{{ equipo.get_puesto_display }}</td>
+                    <td class="num">{{ equipo.microbiologia }}</td>
+                    <td class="num">{{ equipo.bacteriologia }}</td>
+                    <td class="num">{{ equipo.quimica }}</td>
+                    <td class="num"><strong>{{ equipo.total_pruebas }}</strong></td>
+                    <td class="num">${{ equipo.valor_total|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="vacio">No hay usuarios registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="nota">
+        Tarifas: {% for campo, nombre, tarifa in tipos_prueba %}{{ nombre }} ${{ tarifa|intcomma }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+        «Personas» = usuarios con al menos una prueba de ese tipo; el porcentaje se calcula sobre el total de pruebas del puesto.
+    </p>
+</main>
+</body>
+</html>

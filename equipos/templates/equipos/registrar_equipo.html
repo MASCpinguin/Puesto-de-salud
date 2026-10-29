@@ -1,0 +1,105 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registrar usuario</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f4f6f8; color: #263238; }
+        header { background: #1b5e20; color: #fff; padding: 14px 0; }
+        .contenedor { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+        header .contenedor { display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.2rem; }
+        header a { color: #fff; }
+        h2 { margin: 28px 0 14px; }
+        form { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); padding: 22px; }
+        .campo { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 9px 10px; border: 1px solid #b0bec5; border-radius: 6px; font-size: 1rem; }
+        input:focus, select:focus { outline: 2px solid #66bb6a; border-color: #66bb6a; }
+        .pruebas { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+        .tarifa { color: #78909c; font-size: .85rem; }
+        .error { color: #c62828; font-size: .9rem; margin-top: 4px; }
+        .error-general { background: #ffebee; border-left: 4px solid #c62828; padding: 10px 14px; margin-bottom: 14px; }
+        fieldset { border: 0; border-top: 1px solid #e0e0e0; padding: 14px 0 0; margin: 6px 0 0; }
+        legend { color: #546e7a; font-weight: 600; padding-right: 8px; }
+        .resumen { display: flex; justify-content: space-between; background: #eceff1; padding: 12px 16px; border-radius: 6px; margin: 10px 0 18px; }
+        .boton { display: inline-block; line-height: 1.2; font-family: inherit; padding: 10px 20px; border-radius: 6px; border: 0; font-size: 1rem; cursor: pointer; text-decoration: none; }
+        .guardar { background: #2e7d32; color: #fff; }
+        .cancelar { background: #fff; color: #546e7a; border: 1px solid #b0bec5; }
+    </style>
+</head>
+<body>
+<header>
+    <div class="contenedor">
+        <h1>Laboratorio · Puestos de Salud</h1>
+        <a href="{% url 'lista_equipos' %}">Ver informe</a>
+    </div>
+</header>
+
+<main class="contenedor">
+    <h2>Registrar usuario y pruebas</h2>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="error-general">{{ form.non_field_errors|join:" " }}</div>
+        {% endif %}
+
+        {% for campo in form.visible_fields|slice:":3" %}
+            <div class="campo">
+                <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                {{ campo }}
+                {% for error in campo.errors %}<div class="error">{{ error }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+
+        <fieldset>
+            <legend>Pruebas solicitadas (M)</legend>
+            <div class="pruebas">
+                {% for campo in form.visible_fields|slice:"3:" %}
+                    <div class="campo">
+                        <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                        {{ campo }}
+                        {% for tipo in tipos_prueba %}{% if tipo.0 == campo.name %}
+                            <span class="tarifa">${{ tipo.2|intcomma }} c/u</span>
+                        {% endif %}{% endfor %}
+                        {% for error in campo.errors %}<div class="error">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <div class="resumen">
+            <span>Total pruebas: <strong id="total-pruebas">0</strong></span>
+            <span>Valor a pagar: <strong id="valor-pagar">$0</strong></span>
+        </div>
+
+        <button type="submit" class="boton guardar">Registrar</button>
+        <a href="{% url 'lista_equipos' %}" class="boton cancelar">Cancelar</a>
+    </form>
+</main>
+
+<script>
+    // Vista previa del valor a pagar; el valor definitivo lo calcula el servidor (models.py).
+    const tarifas = { {% for campo, nombre, tarifa in tipos_prueba %}'{{ campo }}': {{ tarifa }}{% if not forloop.last %}, {% endif %}{% endfor %} };
+
+    function actualizarTotal() {
+        let pruebas = 0, valor = 0;
+        for (const campo in tarifas) {
+            const cantidad = parseInt(document.getElementById('id_' + campo).value) || 0;
+            pruebas += cantidad;
+            valor += cantidad * tarifas[campo];
+        }
+        document.getElementById('total-pruebas').textContent = pruebas;
+        document.getElementById('valor-pagar').textContent = '$' + valor.toLocaleString('es-CO');
+    }
+
+    document.querySelectorAll('.prueba').forEach(i => i.addEventListener('input', actualizarTotal));
+    actualizarTotal();
+</script>
+</body>
+</html>
